@@ -5,9 +5,9 @@ INCLUDE Irvine32.inc
 row BYTE ?
 col BYTE ?
 
-rows = 25
-cols = 25
-numOfElements = 625
+rows = 30
+cols = 30
+numOfElements = (rows * cols)
 
 coordList DWORD numOfElements DUP(0)
 coordPos DWORD ?
@@ -16,14 +16,14 @@ coordPos DWORD ?
 main PROC
 
 	; loop x times
-	mov ecx,3000
+	mov ecx,7000
 
 	call Randomize
 	; draw x loop:
 	L1:
 		call RandomCoords
 
-		; get coord position ((row-1) * col) + col:
+		; get coord position ((row-1) * cols) + col:
 		dec row
 		mov al,row
 		push ecx
@@ -50,11 +50,8 @@ main PROC
 		mov eax,[coordList+edx]
 		add al,'0'
 
-		; if number < 9, increment the value:
+		; if number < 9, just draw it as is:
 		lessNine:
-		push eax
-		call ChooseColor
-		pop eax
 		call DrawNum
 
 		mov eax,1
@@ -70,6 +67,9 @@ main ENDP
 ; write the number:
 DrawNum PROC
 	call Locate
+	push eax
+	call ChooseColor
+	pop eax
 	call WriteChar
 	ret
 DrawNum ENDP
@@ -97,8 +97,8 @@ RandomCoords ENDP
 ChooseColor PROC
 	; generate random forecolor:
 	mov	eax,15
-	inc eax
 	call RandomRange	
+	inc eax
 	call SetTextColor
 	ret
 ChooseColor ENDP
