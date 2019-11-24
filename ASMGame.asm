@@ -22,6 +22,7 @@ up BYTE 'F'
 down BYTE 'F'
 
 applesEaten DWORD 0
+adder DWORD 2
 
 .code
 main PROC
@@ -49,8 +50,9 @@ main PROC
 
 	; start game loop:
 	gameLoop:
+		call DrawAppleCont
 		; delay for 80ms
-		mov eax,80
+		mov eax,40
 		call Delay
 
 		; read keybuffer into al:
@@ -225,12 +227,12 @@ RefreshPlayer PROC
 		cmp right,'T'
 		jne goingLeft
 		dec dl
-		
+
 		goingLeft:
 		cmp left,'T'
 		jne goingUp
 		inc dl
-
+		
 		goingUp:
 		cmp up,'T'
 		jne goingDown
@@ -244,17 +246,114 @@ RefreshPlayer PROC
 		finishLoop:
 	loop playerLoop
 
+	call DeletePlayerPixels
+
+	cmp up,'T'
+		jne checkDown
+		call GetAdder
+		; as the body expands, the area of deletion expands proportionally:
+		push ecx
+		add esi,edi
+		mov ecx,esi
+		upLoop1:
+		dec dl
+		call DeletePlayerPixels
+		loop upLoop1
+		pop ecx
+
+		push ecx
+		inc edi
+		add esi,edi
+		mov ecx,esi
+		upLoop2:
+		inc dl
+		call DeletePlayerPixels
+		loop upLoop2
+		pop ecx
+	checkDown:
+	cmp down,'T'
+	jne checkRight
+		push ecx
+		add applesEaten,2
+		mov ecx,applesEaten
+		downLoop1:
+		inc dl
+		call DeletePlayerPixels
+		loop downLoop1
+		pop ecx
+
+		push ecx
+		add applesEaten,3
+		mov ecx,applesEaten
+		downLoop2:
+		dec dl
+		call DeletePlayerPixels
+		loop downLoop2
+		pop ecx
+		sub applesEaten,5
+	checkRight:
+	cmp right,'T'
+		jne checkLeft
+		push ecx
+		add applesEaten,2
+		mov ecx,applesEaten
+		rightLoop1:
+		dec dh
+		call DeletePlayerPixels
+		loop rightLoop1
+		pop ecx
+
+		push ecx
+		add applesEaten,3
+		mov ecx,applesEaten
+		rightLoop2:
+		inc dh
+		call DeletePlayerPixels
+		loop rightLoop2
+		pop ecx
+		sub applesEaten,5
+	checkLeft:
+	cmp left,'T'
+		jne noApples
+		push ecx
+		add applesEaten,2
+		mov ecx,applesEaten
+		leftLoop1:
+		inc dh
+		call DeletePlayerPixels
+		loop leftLoop1
+		pop ecx
+
+		push ecx
+		add applesEaten,3
+		mov ecx,applesEaten
+		leftLoop2:
+		dec dh
+		call DeletePlayerPixels
+		loop leftLoop2
+		pop ecx
+		sub applesEaten,5
 	noApples:
+RefreshPlayer ENDP
+
+GetAdder PROC
+	mov esi,applesEaten
+	add esi,adder
+	mov edi,esi
+	mov esi,applesEaten
+GetAdder ENDP
+
+DeletePlayerPixels PROC
 	call Gotoxy
 	push eax
-	; draw a blank space there:
-	mov eax,black  (black * 16)
+	; draw a blank space:
+	mov eax,gray (gray * 16)
 	call SetTextColor
 	pop eax
 	mov al," "
 	call WriteChar
 	ret
-RefreshPlayer ENDP
+DeletePlayerPixels ENDP
 
 ; draw player to current location:
 DrawPlayer PROC
@@ -270,6 +369,22 @@ DrawPlayer PROC
 	call WriteChar
 	ret
 DrawPlayer ENDP
+
+DrawAppleCont PROC
+	; draw a red apple:
+	push eax
+	mov eax,red  (red * 16)
+	call SetTextColor
+	pop eax
+	push edx
+	mov dl,xApplePos
+	mov dh,yApplePos
+	call Gotoxy
+	pop edx
+	mov al,"X"
+	call WriteChar
+	ret
+DrawAppleCont ENDP
 
 DrawRandomApple PROC
 	push edx
@@ -287,14 +402,6 @@ DrawRandomApple PROC
 	mov xApplePos,dl
 	mov yApplePos,dh
 	pop edx
-
-	; draw a red apple:
-	push eax
-	mov eax,red  (red * 16)
-	call SetTextColor
-	pop eax
-	mov al,"X"
-	call WriteChar
 	ret
 DrawRandomApple ENDP
 
