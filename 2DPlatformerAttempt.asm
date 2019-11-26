@@ -1,224 +1,169 @@
-; by Ben Bollinger
-
 INCLUDE Irvine32.inc
 
 .data
 
-strLine BYTE "-----------------------------------------------------------------------------------------------------------------------",0
+ground BYTE "------------------------------------------------------------------------------------------------------------------------",0
+
 strScore BYTE "Your score is: ",0
-
-inputChar BYTE ?
-
-xPos BYTE ?
-yPos BYTE ?
-
 score BYTE 0
+
+xPos BYTE 20
+yPos BYTE 20
+
 xCoinPos BYTE ?
 yCoinPos BYTE ?
 
-isJumping BYTE 'F'
+inputChar BYTE ?
 
 .code
 main PROC
+	; draw ground at (0,29):
+	mov dl,0
+	mov dh,29
+	call Gotoxy
+	mov edx,OFFSET ground
+	call WriteString
 
-	; set init player position:
-	mov xPos,20
-	mov yPos,20
+	call DrawPlayer
 
-	; generate random coin:
 	call CreateRandomCoin
+	call DrawCoin
 
-	; start game loop:
+	call Randomize
+
 	gameLoop:
-		; draw coin:
-		call DrawCoin
 
-		; coin intersections:
+		; getting points:
 		mov bl,xPos
 		cmp bl,xCoinPos
-		jne notColliding
+		jne notCollecting
 		mov bl,yPos
 		cmp bl,yCoinPos
-		jne notColliding
-		; if the player gets the coin:
+		jne notCollecting
+		; player is intersecting coin:
 		inc score
 		call CreateRandomCoin
-		notColliding:
+		call DrawCoin
+		notCollecting:
 
-		; keep text normal:
-		mov eax,white  (black * 16)
+		mov eax,white (black * 16)
 		call SetTextColor
 
-		; draw score at (0,0):
-		mov  dl,0
-		mov  dh,0
+		; draw score:
+		mov dl,0
+		mov dh,0
 		call Gotoxy
-		mov edx,0
 		mov edx,OFFSET strScore
 		call WriteString
-		mov dl,16
 		mov al,score
 		add al,'0'
 		call WriteChar
 
-		; draw ground at (0,29):
-		mov  dl,0
-		mov  dh,29
-		call Gotoxy
-		mov edx,0
-		mov edx,OFFSET strLine
-		call WriteString
-
-		; gravity logic
+		; gravity logic:
 		gravity:
-		; if yPos < 27:
 		cmp yPos,27
 		jg onGround
-		; and is not jumping:
-		cmp isJumping,'F'
-		jne onGround
-		; the fall:
-		call RefreshPlayer
+		; make player fall:
+		call UpdatePlayer
 		inc yPos
 		call DrawPlayer
-		mov eax,70
+		mov eax,80
 		call Delay
 		jmp gravity
-
-		; else, continue:
 		onGround:
 
-		; get user input:
+		; get user key input:
 		call ReadChar
 		mov inputChar,al
 
-		; check for game exit:
+		; exit game if user types 'x':
 		cmp inputChar,"x"
 		je exitGame
 
-		; check for 'w' (up):
-		cmp inputChar,119
+		cmp inputChar,"w"
 		je moveUp
-		
-		; check for 's' (down):
-		cmp inputChar,115
+
+		cmp inputChar,"s"
 		je moveDown
 
-		; check for 'd' (right):
-		cmp inputChar,100
-		je moveRight
-
-		; check for 'a' (left):
-		cmp inputChar,97
+		cmp inputChar,"a"
 		je moveLeft
 
-		; move the player up:
-		moveUp:
-			; clear current player location:
-			call RefreshPlayer
+		cmp inputChar,"d"
+		je moveRight
 
-			; decrement yPos (move up) and draw Player:
+		moveUp:
+		; allow player to jump:
+		mov ecx,1
+		jumpLoop:
+			call UpdatePlayer
 			dec yPos
 			call DrawPlayer
-
-			; set isJumping to true and delay
-			mov isJumping,'T'
-			mov eax,250
+			mov eax,70
 			call Delay
-			; reset input and repeat loop and set isJumping to false:
-			mov isJumping,'F'
-			mov inputChar,0
-			jmp gameLoop
-
-		; move the player down:
-		moveDown:
-			; clear current player location:
-			call RefreshPlayer
-
-			; increment yPos (move down) and draw Player:
-			inc yPos
-			call DrawPlayer
-
-			; reset input and repeat loop:
-			mov inputChar,0
-			jmp gameLoop
-
-		; move the player right:
-		moveRight:
-			; clear current player location:
-			call RefreshPlayer
-
-			; increment yPos (move down) and draw Player:
-			inc xPos
-			call DrawPlayer
-
-			; reset input and repeat loop:
-			mov inputChar,0
-			jmp gameLoop
-
-		; move the player left:
-		moveLeft:
-			; clear current player location:
-			call RefreshPlayer
-
-			; increment yPos (move down) and draw Player:
-			dec xPos
-			call DrawPlayer
-
-			; reset input and repeat loop:
-			mov inputChar,0
-			jmp gameLoop
-
+		loop jumpLoop
 		jmp gameLoop
+
+		moveDown:
+		call UpdatePlayer
+		inc yPos
+		call DrawPlayer
+		jmp gameLoop
+
+		moveLeft:
+		call UpdatePlayer
+		dec xPos
+		call DrawPlayer
+		jmp gameLoop
+
+		moveRight:
+		call UpdatePlayer
+		inc xPos
+		call DrawPlayer
+		jmp gameLoop
+
+	jmp gameLoop
 
 	exitGame:
 	exit
 main ENDP
 
-; clear current player so to draw at new location:
-RefreshPlayer PROC
-	mov  dl,xPos
-	mov  dh,yPos
-	call Gotoxy
-	mov al," "
-	call WriteChar
-	ret
-RefreshPlayer ENDP
-
-; draw player to current location:
 DrawPlayer PROC
-	mov  dl,xPos
-	mov  dh,yPos
+	; draw player at (xPos,yPos):
+	mov dl,xPos
+	mov dh,yPos
 	call Gotoxy
 	mov al,"X"
 	call WriteChar
 	ret
 DrawPlayer ENDP
 
+UpdatePlayer PROC
+	mov dl,xPos
+	mov dh,yPos
+	call Gotoxy
+	mov al," "
+	call WriteChar
+	ret
+UpdatePlayer ENDP
+
 DrawCoin PROC
-	push eax
-	mov eax,yellow  (yellow * 16)
+	mov eax,yellow (yellow * 16)
 	call SetTextColor
-	pop eax
-	push edx
 	mov dl,xCoinPos
 	mov dh,yCoinPos
 	call Gotoxy
-	pop edx
 	mov al,"X"
 	call WriteChar
 	ret
 DrawCoin ENDP
 
 CreateRandomCoin PROC
-	push edx
-	; generate random x position:
-	mov eax,55
+	mov eax,35
+	inc eax
 	call RandomRange
 	mov xCoinPos,al
-	; set y pos to 27:
 	mov yCoinPos,27
-	pop edx
 	ret
 CreateRandomCoin ENDP
 
