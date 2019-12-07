@@ -56,8 +56,7 @@ main PROC
 		mov edx,OFFSET strScore
 		call WriteString
 		mov al,score
-		add al,'0'
-		call WriteChar
+		call WriteInt
 
 		; gravity logic:
 		gravity:
@@ -159,7 +158,7 @@ DrawCoin PROC
 DrawCoin ENDP
 
 CreateRandomCoin PROC
-	mov eax,35
+	mov eax,55
 	inc eax
 	call RandomRange
 	mov xCoinPos,al
